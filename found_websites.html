@@ -1,0 +1,117 @@
+<html>
+<head>
+  <title>Found Websites</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #searchBar { position: fixed; top: 20px; right: 20px; width: 200px; }
+    ul { margin-top: 140px; }
+    li { margin-bottom: 5px; }
+    .pagination { margin-top: 20px; }
+    .pagination button { margin: 0 5px; }
+    .settings { margin-top: 60px; }
+  </style>
+</head>
+<body>
+  <div id="searchBar">
+    <input type="text" id="searchInput" onkeyup="searchDomains()" placeholder="Search domains...">
+  </div>
+  <h1>Probed Websites with Valid Content</h1>
+  <div class="settings">
+    <label for="itemsPerPageSelect">Links per page: </label>
+    <select id="itemsPerPageSelect" onchange="changeItemsPerPage()">
+      <option value="10">10</option>
+      <option value="25">25</option>
+      <option value="50" selected>50</option>
+      <option value="100">100</option>
+      <option value="500">500</option>
+      <option value="1000">1000</option>
+      <option value="5000">5000</option>
+      <option value="10000">10000</option>
+    </select>
+  </div>
+  <ul id="domainList"></ul>
+  <div class="pagination">
+    <button onclick="prevPage()">Prev</button>
+    <span id="pageInfo"></span>
+    <button onclick="nextPage()">Next</button>
+  </div>
+  <script>
+    var domains = [];
+    var filteredDomains = [];
+    var currentPage = 1;
+    var itemsPerPage = 50;
+
+    // Load domains from JSON
+    fetch('domains.json')
+      .then(response => response.json())
+      .then(data => {
+        domains = data;
+        displayPage(currentPage);
+      })
+      .catch(error => console.error('Error loading domains:', error));
+
+    // Display a paginated list
+    function displayPage(page, listData) {
+      var data = listData || domains;
+      var startIndex = (page - 1) * itemsPerPage;
+      var endIndex = startIndex + itemsPerPage;
+      var list = document.getElementById('domainList');
+      list.innerHTML = "";
+
+      for (var i = startIndex; i < Math.min(endIndex, data.length); i++) {
+        var li = document.createElement("li");
+        var a = document.createElement("a");
+        a.href = data[i];
+        a.target = "_blank";
+        a.textContent = "[" + (i + 1) + "] " + data[i];
+        li.appendChild(a);
+        list.appendChild(li);
+      }
+
+      document.getElementById("pageInfo").textContent = "Page " + page + " of " + Math.ceil(data.length / itemsPerPage) +
+        (listData ? " (filtered)" : "");
+    }
+
+    // Navigate pages
+    function nextPage() {
+      var data = (filteredDomains.length > 0) ? filteredDomains : domains;
+      if (currentPage < Math.ceil(data.length / itemsPerPage)) {
+        currentPage++;
+        displayPage(currentPage, data);
+      }
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        displayPage(currentPage, (filteredDomains.length > 0) ? filteredDomains : null);
+      }
+    }
+
+    // Change items per page
+    function changeItemsPerPage() {
+      itemsPerPage = parseInt(document.getElementById("itemsPerPageSelect").value);
+      currentPage = 1;
+      displayPage(currentPage, (filteredDomains.length > 0) ? filteredDomains : null);
+    }
+
+    // Search with pagination
+    function searchDomains() {
+      var filter = document.getElementById("searchInput").value.toLowerCase();
+      if (filter === "") {
+        filteredDomains = [];
+        currentPage = 1;
+        displayPage(currentPage);
+        return;
+      }
+      filteredDomains = domains.filter(domain => domain.toLowerCase().includes(filter));
+      currentPage = 1;
+      displayPage(currentPage, filteredDomains);
+    }
+
+    window.onload = function() {
+      displayPage(currentPage);
+    };
+  </script>
+</body>
+</html>
